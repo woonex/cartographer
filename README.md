@@ -41,3 +41,13 @@ The query model has the currently available tools
 #### Frontend
 
 Serves template via html for user to interact with
+
+# Developing
+
+Run to create and install development dependencies
+
+```sh
+python -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"
+```
