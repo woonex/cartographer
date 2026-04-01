@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     embedding_model: str = "all-MiniLM-L6-v2"
     chunk_size: int = 512
     chunk_overlap: int = 50
+    collection_name: str = "manuals"
 
     model_config = {"env_prefix": "INGESTION_"}
 

@@ -40,7 +40,7 @@ def ingest_vehicle(vehicle_name: str, document_name: str, pdf_path: str):
     chunks = chunk_text(text)
     embeddings = model.encode(chunks).tolist()
 
-    collection_name = "manuals"
+    collection_name = settings.collection_name
     vector_size = model.get_sentence_embedding_dimension()
 
     # first time setup
