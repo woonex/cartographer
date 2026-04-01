@@ -15,7 +15,6 @@ services:
       - INGESTION_VECTOR_STORE_URL=http://qdrant:6333
     depends_on:
       - qdrant
-    command: uvicorn main:app --host 0.0.0.0 --port 8001
 
 volumes:
   qdrant_data:
