@@ -1,4 +1,4 @@
-from settings import get_settings
+from settings_query import get_settings
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue

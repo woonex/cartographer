@@ -1,7 +1,7 @@
 import httpx
 from langchain.tools import tool
 
-from settings import get_settings
+from settings_query import get_settings
 
 settings = get_settings()
 
