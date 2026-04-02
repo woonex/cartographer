@@ -9,8 +9,9 @@ settings = get_settings()
 model = SentenceTransformer(settings.embedding_model)
 qdrant = QdrantClient(url=settings.vector_store_url)
 
+
 @tool
-def search_manual(search_info: str, vehicle: str) -> str:
+def search_manual(search_info: str = "", vehicle: str = "") -> str:
     """Gets relevant text from owner's manual for a vehicle
 
     Args:
@@ -20,6 +21,9 @@ def search_manual(search_info: str, vehicle: str) -> str:
     Returns:
         str continaing top matching results from owner's manual
     """
+
+    if search_info is None or search_info == "" or vehicle is None or vehicle == "":
+        return "Malformed tool call, please pass both \"search_info\" and \"vehicle\" to this function"
 
     collection_name = settings.collection_name
     top_k = settings.top_k

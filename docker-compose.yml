@@ -21,5 +21,16 @@ services:
     ports:
       - "8003:8003"
 
+  query:
+    build: ./src/services/query
+    ports:
+      - "8002:8002"
+    environment:
+      - QUERY_VECTOR_STORE_URL=http://qdrant:6333
+      - QUERY_VEHICLE_LIBRARY_URL=http://vehicle_library:8003
+    depends_on:
+      - qdrant
+      - vehicle_library
+
 volumes:
   qdrant_data:
