@@ -31,6 +31,12 @@ services:
     depends_on:
       - qdrant
       - vehicle_library
+      - specification_library
+
+  specification_library:
+    build: ./src/services/specification_library
+    ports:
+      - "8004:8004"
 
 volumes:
   qdrant_data:
