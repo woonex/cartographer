@@ -35,7 +35,7 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
 
-@app.post("/query", response_mode=QueryResponse)
+@app.post("/query", response_model=QueryResponse)
 async def query(req: QueryRequest) -> QueryResponse:
     answer = ask(req.question, req.vehicle)
     return QueryResponse(answer=answer)
