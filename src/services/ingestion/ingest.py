@@ -49,7 +49,8 @@ def ingest_vehicle(vehicle_name: str, document_name: str, pdf_path: str):
             vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
         )
 
-    # clear existing chunks for this vehicle and document before inserting if re-uploading to prevent minor differences in files giving more embeddings than necessary
+    # clear existing chunks for this vehicle and document before inserting
+    # if re-uploading to prevent minor differences in files giving more embeddings than necessary
     qdrant.delete(
         collection_name=collection_name,
         points_selector=FilterSelector(
