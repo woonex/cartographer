@@ -1,9 +1,9 @@
-from settings_query import get_settings
-
-from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
-from sentence_transformers import SentenceTransformer
 from langchain.tools import tool
+from qdrant_client import QdrantClient
+from qdrant_client.models import FieldCondition, Filter, MatchValue
+from sentence_transformers import SentenceTransformer
+
+from settings_query import get_settings
 
 settings = get_settings()
 model = SentenceTransformer(settings.embedding_model)

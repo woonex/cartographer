@@ -2,9 +2,9 @@ from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from agent import ask
 from settings_query import Settings, get_settings
 from tools.search_manual import qdrant
-from agent import ask
 
 app = FastAPI()
 

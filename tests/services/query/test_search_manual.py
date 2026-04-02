@@ -81,6 +81,7 @@ def search():
         mock_settings.return_value.min_similarity = MIN_SIMILARITY
 
         import importlib
+
         import tools.search_manual as sm
         importlib.reload(sm)
 
