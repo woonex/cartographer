@@ -16,5 +16,10 @@ services:
     depends_on:
       - qdrant
 
+  vehicle_library:
+    build: ./src/services/vehicle_library
+    ports:
+      - "8003:8003"
+
 volumes:
   qdrant_data:
