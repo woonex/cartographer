@@ -44,4 +44,7 @@ def search_manual(search_info: str = "", vehicle: str = "") -> str:
         score_threshold=settings.min_similarity,
     )
 
+    if len(response.points) == 0:
+        return f"No owner's manual data is available for {vehicle}. Do not retry this search."
+
     return "\n\n".join(point.payload["text"] for point in response.points)

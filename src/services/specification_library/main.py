@@ -70,7 +70,11 @@ def find_specs(vehicle: str) -> VehicleEntry | None:
     parts = vehicle.split(" ", 1)
     if len(parts) != 2:
         return None
-    year, make_model = int(parts[0]), parts[1]
+    try:
+        year = int(parts[0])
+    except ValueError:
+        return None
+    make_model = parts[1]
     for entry in SPECS:
         full_name = f"{entry.vehicle.make} {entry.vehicle.model}"
         low, high = entry.vehicle.years_valid
