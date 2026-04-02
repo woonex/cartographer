@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     vector_store_url: str
+    vehicle_library_url: str
     collection_name: str = "manuals"
     top_k: int = 3
     min_similarity: float = 0.75

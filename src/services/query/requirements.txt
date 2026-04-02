@@ -6,3 +6,4 @@ uvicorn
 sentence-transformers
 langchain-text-splitters
 qdrant-client
+httpx
