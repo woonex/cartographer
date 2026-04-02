@@ -9,6 +9,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import MessagesState
 from langgraph.prebuilt import ToolNode
 
+from tools.get_specification_info import get_specification_info
 from tools.search_manual import search_manual
 from tools.vehicle_state import vehicle_state
 
@@ -16,7 +17,7 @@ system_prompt = SystemMessage(
     "You are a helpful vehicle assistant. You have access to tools to answer questions about the user's vehicles. You must ground your answers in the outputs from the tools. If the tool searches do not provide useful information, directly tell the user. NEVER make up an answer. If you can't find the info in all of the tool calls, respond with \"I couldn't find that information\""
 )
 
-tools = [search_manual, vehicle_state]
+tools = [search_manual, vehicle_state, get_specification_info]
 
 model = ChatGroq(model="openai/gpt-oss-120b").bind_tools(tools)
 

@@ -7,7 +7,7 @@ settings = get_settings()
 
 
 @tool
-def vehicle_state(vehicle: str):
+def get_specification_info(vehicle: str):
     """Gets the manufacturer published recommended information about a vehicle
 
     Args:
@@ -17,7 +17,7 @@ def vehicle_state(vehicle: str):
         dict containing information about specifications of vehicle
     """
     response = httpx.get(
-        f"{settings.specifications_library_url}/vehicles/specs",
+        f"{settings.specifications_library_url}/vehicle/specifications",
         params={"vehicle": vehicle},
     )
     response.raise_for_status()
