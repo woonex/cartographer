@@ -1,0 +1,4 @@
+fastapi
+pydantic-settings
+uvicorn
+qdrant-client
