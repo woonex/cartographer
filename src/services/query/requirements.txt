@@ -1,4 +1,8 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
 fastapi
 pydantic-settings
 uvicorn
+sentence-transformers
+langchain-text-splitters
 qdrant-client
