@@ -4,6 +4,8 @@ fastapi
 pydantic-settings
 uvicorn
 sentence-transformers
+langchain
+langchain-groq
 langchain-text-splitters
 qdrant-client
 httpx
