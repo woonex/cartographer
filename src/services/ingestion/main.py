@@ -3,9 +3,9 @@ Main server to upload and ingest docs for RAG
 """
 
 import tempfile
+
 from fastapi import Depends, FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
-
 from ingest import ingest_vehicle, qdrant
 from settings import Settings, get_settings
 
