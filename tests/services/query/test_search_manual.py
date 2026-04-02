@@ -35,6 +35,8 @@ SENTENCES = [
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src" / "services" / "query"))
 
 os.environ.setdefault("QUERY_VECTOR_STORE_URL", QDRANT_URL)
+os.environ.setdefault("QUERY_VEHICLE_LIBRARY_URL", "http://localhost:8001")
+os.environ.setdefault("QUERY_SPECIFICATIONS_LIBRARY_URL", "http://localhost:8003")
 
 
 @pytest.fixture(scope="module")
@@ -70,10 +72,10 @@ def seed_collection(qdrant, model):
     qdrant.upsert(collection_name=COLLECTION_NAME, points=points)
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def search():
     """Yield a patched search_manual function wired to the test collection."""
-    with patch("settings.get_settings") as mock_settings:
+    with patch("settings_query.get_settings") as mock_settings:
         mock_settings.return_value.vector_store_url = QDRANT_URL
         mock_settings.return_value.embedding_model = EMBEDDING_MODEL
         mock_settings.return_value.collection_name = COLLECTION_NAME
@@ -97,5 +99,5 @@ def search():
     ("how much oil does it hold?", 5),
 ])
 def test_search_manual_returns_relevant_result(search, question, expected_index):
-    result = search(question, "test-car")
+    result = search.invoke({"search_info": question, "vehicle": "test-car"})
     assert SENTENCES[expected_index] in result
