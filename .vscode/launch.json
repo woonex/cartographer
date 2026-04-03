@@ -75,7 +75,7 @@
             "cwd": "${workspaceFolder}/src/services/frontend",
             "env": {
                 "FRONTEND_VEHICLE_LIBRARY_URL": "http://localhost:8003",
-                "FRONTEND_QUERY_URL": "http://localhost:8004"
+                "FRONTEND_QUERY_URL": "http://localhost:8002"
             }
         },
     ]

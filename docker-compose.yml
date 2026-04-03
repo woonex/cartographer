@@ -28,7 +28,7 @@ services:
     environment:
       - QUERY_VECTOR_STORE_URL=http://qdrant:6333
       - QUERY_VEHICLE_LIBRARY_URL=http://vehicle_library:8003
-      - QUERY_SPECIFICATIONS_LIBRARY_URL=http://specifications_library:8004
+      - QUERY_SPECIFICATIONS_LIBRARY_URL=http://specification_library:8004
     depends_on:
       - qdrant
       - vehicle_library
@@ -44,8 +44,8 @@ services:
     ports:
       - "8005:8005"
     environment:
-      - FRONTEND_QUERY_URL=query:8002
-      - FRONTEND_VEHICLE_LIBRARY_URL=vehicle_library:8003
+      - FRONTEND_QUERY_URL=http://query:8002
+      - FRONTEND_VEHICLE_LIBRARY_URL=http://vehicle_library:8003
     depends_on:
       - query
 
