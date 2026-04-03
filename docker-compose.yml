@@ -12,7 +12,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - INGESTION_VECTOR_STORE_URL=http://qdrant:6333
+      - INGESTION_VECTOR_STORE_URL=qdrant:6333
     depends_on:
       - qdrant
 
@@ -28,6 +28,7 @@ services:
     environment:
       - QUERY_VECTOR_STORE_URL=http://qdrant:6333
       - QUERY_VEHICLE_LIBRARY_URL=http://vehicle_library:8003
+      - QUERY_SPECIFICATIONS_LIBRARY_URL=http://specifications_library:8004
     depends_on:
       - qdrant
       - vehicle_library
@@ -37,6 +38,16 @@ services:
     build: ./src/services/specification_library
     ports:
       - "8004:8004"
+
+  frontend:
+    build: ./src/services/frontend
+    ports:
+      - "8005:8005"
+    environment:
+      - UI_QUERY_URL=query:8002
+      - UI_VEHICLE_LIBRARY_URL=vehicle_library:8003
+    depends_on:
+      - query
 
 volumes:
   qdrant_data:

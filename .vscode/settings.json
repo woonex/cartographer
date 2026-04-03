@@ -1,8 +1,10 @@
 {
     "python.analysis.extraPaths": [
+        "src/services/frontend",
         "src/services/ingestion",
         "src/services/query",
-        "src/services/vehicle_library"
+        "src/services/specification_library",
+        "src/services/vehicle_library",
     ],
     "python.testing.pytestArgs": [
         "tests"

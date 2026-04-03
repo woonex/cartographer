@@ -46,6 +46,9 @@ def health():
     """If the server is alive"""
     return {"status": "ok"}
 
+@app.get("/vehicles")
+def get_avavailable_vehicles():
+    return VEHICLES.keys()
 
 @app.get("/vehicles/state")
 def get_vehicle_state(vehicle: str = Query(..., description="Vehicle identifier (YEAR MAKE MODEL)")):

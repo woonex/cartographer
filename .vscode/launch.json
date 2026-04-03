@@ -60,6 +60,23 @@
                 "8004"
             ],
             "cwd": "${workspaceFolder}/src/services/specification_library",
-        }
+        },
+        {
+            "name": "Frontend Service",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload",
+                "--port",
+                "8005"
+            ],
+            "cwd": "${workspaceFolder}/src/services/frontend",
+            "env": {
+                "FRONTEND_VEHICLE_LIBRARY_URL": "http://localhost:8003",
+                "FRONTEND_QUERY_URL": "http://localhost:8004"
+            }
+        },
     ]
 }
