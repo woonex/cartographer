@@ -1,3 +1,5 @@
+from typing import AsyncGenerator
+
 from dotenv import load_dotenv
 from groq import BadRequestError
 from langchain_core.messages import AIMessage, SystemMessage
@@ -67,3 +69,38 @@ def ask(question: str, vehicle: str, history: list[dict] | None = None) -> str:
     result = agent.invoke({"messages": prior + [current]})
     print(result)
     return result["messages"][-1].content
+
+
+async def ask_stream(question: str, vehicle: str) -> AsyncGenerator[dict, None]:
+    input_data = {
+        "messages": [{
+            "role": "user",
+            "content": f"[Context: The user's active vehicle is currently {vehicle}.]\n\n{question}",
+        }]
+    }
+    async for event in agent.astream_events(input_data, version="v2"):
+        kind = event["event"]
+
+        if kind == "on_tool_start":
+            yield {
+                "type": "tool_call",
+                "name": event["name"],
+                "args": event["data"].get("input", {}),
+            }
+
+        elif kind == "on_tool_end":
+            output = event["data"].get("output", "")
+            if hasattr(output, "content"):
+                output = output.content
+            yield {
+                "type": "tool_result",
+                "name": event["name"],
+                "content": str(output),
+            }
+
+        elif kind == "on_chat_model_stream":
+            chunk = event["data"].get("chunk")
+            if chunk and chunk.content:
+                yield {"type": "answer_token", "content": chunk.content}
+
+    yield {"type": "done"}

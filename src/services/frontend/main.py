@@ -1,3 +1,5 @@
+import json
+
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel
 import gradio as gr
@@ -36,17 +38,58 @@ def get_available_vehicles() -> list[str]:
     return response.json()
 
 
+def _render(tool_sections: list[str], answer: str) -> str:
+    parts = list(tool_sections)
+    if answer:
+        parts.append(answer)
+    return "\n".join(parts)
+
 
 def respond(message: str, history: list, vehicle: str):
-    response = httpx.post(
-        f"{settings.query_url}/query",
-        json={"vehicle": vehicle, "question": message, "history": history},
-        timeout=15,
-    )
-    response.raise_for_status()
+    history = list(history)
     history.append({"role": "user", "content": message})
-    history.append({"role": "assistant", "content": response.json()["answer"]})
-    return "", history
+    history.append({"role": "assistant", "content": ""})
+    yield "", history
+
+    tool_sections: list[str] = []
+    answer = ""
+
+    with httpx.stream(
+        "POST",
+        f"{settings.query_url}/query/stream",
+        json={"vehicle": vehicle, "question": message},
+        timeout=120,
+    ) as response:
+        response.raise_for_status()
+        for line in response.iter_lines():
+            if not line.startswith("data: "):
+                continue
+            event = json.loads(line[6:])
+
+            if event["type"] == "tool_call":
+                args_json = json.dumps(event["args"], indent=2)
+                tool_sections.append(
+                    f"<details><summary>🔧 {event['name']}</summary>\n\n"
+                    f"```json\n{args_json}\n```\n\n</details>"
+                )
+
+            elif event["type"] == "tool_result":
+                tool_sections.append(
+                    f"<details><summary>📥 Result from {event['name']}</summary>\n\n"
+                    f"```\n{event['content']}\n```\n\n</details>"
+                )
+
+            elif event["type"] == "answer_token":
+                answer += event["content"]
+
+            elif event["type"] == "error":
+                answer = f"Error: {event['content']}"
+
+            elif event["type"] == "done":
+                break
+
+            history[-1]["content"] = _render(tool_sections, answer)
+            yield "", history
 
 
 def on_vehicle_select(vehicle: str):
@@ -70,6 +113,7 @@ with gr.Blocks() as gradio_app:
     vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit])
     submit.click(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
     msg.submit(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
+
     def load_vehicles():
         return gr.Dropdown(choices=get_available_vehicles())
 
