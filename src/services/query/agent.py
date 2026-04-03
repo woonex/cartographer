@@ -98,6 +98,13 @@ async def ask_stream(question: str, vehicle: str) -> AsyncGenerator[dict, None]:
                 "content": str(output),
             }
 
+        elif kind == "on_chat_model_end":
+            response = event["data"].get("output")
+            if response:
+                reasoning = response.additional_kwargs.get("reasoning_content", "")
+                if reasoning:
+                    yield {"type": "reasoning", "content": reasoning}
+
         elif kind == "on_chat_model_stream":
             chunk = event["data"].get("chunk")
             if chunk and chunk.content:

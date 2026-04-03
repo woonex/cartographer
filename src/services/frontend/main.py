@@ -38,8 +38,15 @@ def get_available_vehicles() -> list[str]:
     return response.json()
 
 
-def _render(tool_sections: list[str], answer: str) -> str:
-    parts = list(tool_sections)
+def _render(tool_names: list[str], tool_content: str, answer: str, streaming: bool) -> str:
+    parts = []
+    if tool_content:
+        open_attr = " open" if streaming else ""
+        unique_names = list(dict.fromkeys(tool_names))
+        summary = f"Steps taken ({', '.join(unique_names)})"
+        parts.append(f"<details{open_attr}><summary>{summary}</summary>\n\n{tool_content}</details>")
+    if tool_content and answer:
+        parts.append("\n---\n")
     if answer:
         parts.append(answer)
     return "\n".join(parts)
@@ -51,7 +58,8 @@ def respond(message: str, history: list, vehicle: str):
     history.append({"role": "assistant", "content": ""})
     yield "", history
 
-    tool_sections: list[str] = []
+    tool_names: list[str] = []
+    tool_content = ""
     answer = ""
 
     with httpx.stream(
@@ -66,18 +74,20 @@ def respond(message: str, history: list, vehicle: str):
                 continue
             event = json.loads(line[6:])
 
-            if event["type"] == "tool_call":
+            if event["type"] == "reasoning":
+                tool_content += f"*{event['content']}*\n\n"
+
+            elif event["type"] == "tool_call":
+                tool_names.append(event["name"])
                 args_json = json.dumps(event["args"], indent=2)
-                tool_sections.append(
-                    f"<details><summary>🔧 {event['name']}</summary>\n\n"
-                    f"```json\n{args_json}\n```\n\n</details>"
-                )
+                tool_content += f"**{event['name']}**\n\nInput:\n```json\n{args_json}\n```\n\n"
 
             elif event["type"] == "tool_result":
-                tool_sections.append(
-                    f"<details><summary>📥 Result from {event['name']}</summary>\n\n"
-                    f"```\n{event['content']}\n```\n\n</details>"
-                )
+                try:
+                    result_str = json.dumps(json.loads(event["content"]), indent=2)
+                except (json.JSONDecodeError, TypeError):
+                    result_str = event["content"]
+                tool_content += f"Result:\n```json\n{result_str}\n```\n\n"
 
             elif event["type"] == "answer_token":
                 answer += event["content"]
@@ -88,8 +98,12 @@ def respond(message: str, history: list, vehicle: str):
             elif event["type"] == "done":
                 break
 
-            history[-1]["content"] = _render(tool_sections, answer)
+            history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=not answer)
             yield "", history
+
+    # Final render: collapse the steps block now that we have the answer
+    history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=False)
+    yield "", history
 
 
 def on_vehicle_select(vehicle: str):
