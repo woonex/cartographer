@@ -1,5 +1,5 @@
-from fastapi import Depends, FastAPI
-from fastapi.responses import JSONResponse
+from fastapi import Depends, FastAPI, Request
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import httpx
 
@@ -7,6 +7,7 @@ from settings_frontend import Settings, get_settings
 
 settings = get_settings()
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
 class QueryRequest(BaseModel):
     question: str
@@ -32,10 +33,10 @@ def ready(settings: Settings = Depends(get_settings)):
     return {"status": "ready"}
 
 @app.get("/")
-def main():
-    return "main.html"
+def main(request: Request):
+    return templates.TemplateResponse(request, "main.html")
 
-@app.get("/availble-vehicles")
+@app.get("/available-vehicles")
 def get_available_vehicles() -> list[str]:
     """Gets available vehicles for the user"""
     response = httpx.get(
@@ -49,7 +50,7 @@ def query_model(req: QueryRequest) -> QueryResponse:
     """Query the frontend serves depending on the vehicles available to the user and the question the user asked"""
     response = httpx.post(
         f"{settings.query_url}/vehicle/specifications",
-        body={
+        json={
             "vehicle": req.vehicle,
             "question": req.question
         },

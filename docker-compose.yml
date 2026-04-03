@@ -44,8 +44,8 @@ services:
     ports:
       - "8005:8005"
     environment:
-      - UI_QUERY_URL=query:8002
-      - UI_VEHICLE_LIBRARY_URL=vehicle_library:8003
+      - FRONTEND_QUERY_URL=query:8002
+      - FRONTEND_VEHICLE_LIBRARY_URL=vehicle_library:8003
     depends_on:
       - query
 
