@@ -58,16 +58,12 @@ graph.add_edge("tools", "agent")
 agent = graph.compile()
 
 
-def ask(question: str, vehicle: str) -> str:
-    result = agent.invoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": f"[Context: The user's active vehicle is currently {vehicle}.]\n\n{question}",
-                }
-            ]
-        }
-    )
+def ask(question: str, vehicle: str, history: list[dict] | None = None) -> str:
+    prior = history or []
+    current = {
+        "role": "user",
+        "content": f"[Context: The user's active vehicle is currently {vehicle}.]\n\n{question}",
+    }
+    result = agent.invoke({"messages": prior + [current]})
     print(result)
     return result["messages"][-1].content

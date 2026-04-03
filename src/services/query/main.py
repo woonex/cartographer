@@ -8,6 +8,7 @@ from tools.search_manual import qdrant
 
 app = FastAPI()
 
+
 @app.get("/health")
 def health():
     """If the server is alive"""
@@ -28,14 +29,18 @@ def ready(settings: Settings = Depends(get_settings)):
     except Exception:
         return JSONResponse(status_code=503, content={"status": "not ready", "reason": "vector store unreachable"})
 
+
 class QueryRequest(BaseModel):
     question: str
     vehicle: str
+    history: list[dict] = []
+
 
 class QueryResponse(BaseModel):
     answer: str
 
+
 @app.post("/query", response_model=QueryResponse)
 async def query(req: QueryRequest) -> QueryResponse:
-    answer = ask(req.question, req.vehicle)
+    answer = ask(req.question, req.vehicle, req.history)
     return QueryResponse(answer=answer)

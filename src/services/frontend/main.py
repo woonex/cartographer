@@ -40,7 +40,7 @@ def get_available_vehicles() -> list[str]:
 def respond(message: str, history: list, vehicle: str):
     response = httpx.post(
         f"{settings.query_url}/query",
-        json={"vehicle": vehicle, "question": message},
+        json={"vehicle": vehicle, "question": message, "history": history},
         timeout=15,
     )
     response.raise_for_status()
