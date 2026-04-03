@@ -16,12 +16,13 @@ dependencies = [
     "langchain",
     "langchain-groq",
     "httpx",
+    "jinja2",
+    "gradio",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "httpx",
     "ruff",
 ]
 

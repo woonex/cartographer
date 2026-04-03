@@ -1,20 +1,13 @@
-from fastapi import Depends, FastAPI, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import Depends, FastAPI
 from pydantic import BaseModel
+import gradio as gr
 import httpx
 
 from settings_frontend import Settings, get_settings
 
 settings = get_settings()
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
-class QueryRequest(BaseModel):
-    question: str
-    vehicle: str
-
-class QueryResponse(BaseModel):
-    answer: str
 
 @app.get("/health")
 def health():
@@ -32,9 +25,6 @@ def ready(settings: Settings = Depends(get_settings)):
     """
     return {"status": "ready"}
 
-@app.get("/")
-def main(request: Request):
-    return templates.TemplateResponse(request, "main.html")
 
 @app.get("/available-vehicles")
 def get_available_vehicles() -> list[str]:
@@ -45,15 +35,44 @@ def get_available_vehicles() -> list[str]:
     response.raise_for_status()
     return response.json()
 
-@app.post("/query-model")
-def query_model(req: QueryRequest) -> QueryResponse:
-    """Query the frontend serves depending on the vehicles available to the user and the question the user asked"""
+
+
+def respond(message: str, history: list, vehicle: str):
     response = httpx.post(
-        f"{settings.query_url}/vehicle/specifications",
-        json={
-            "vehicle": req.vehicle,
-            "question": req.question
-        },
+        f"{settings.query_url}/query",
+        json={"vehicle": vehicle, "question": message},
+        timeout=15,
     )
     response.raise_for_status()
-    return response.json()
+    history.append({"role": "user", "content": message})
+    history.append({"role": "assistant", "content": response.json()["answer"]})
+    return "", history
+
+
+def on_vehicle_select(vehicle: str):
+    enabled = bool(vehicle)
+    placeholder = "Ask a question..." if enabled else "Select a vehicle above to begin..."
+    return gr.Textbox(interactive=enabled, placeholder=placeholder), gr.Button(interactive=enabled)
+
+
+with gr.Blocks() as gradio_app:
+    vehicle_dd = gr.Dropdown(label="Vehicle", interactive=True, allow_custom_value=True)
+    chatbot = gr.Chatbot()
+    with gr.Row():
+        msg = gr.Textbox(
+            placeholder="Select a vehicle above to begin...",
+            interactive=False,
+            show_label=False,
+            scale=9,
+        )
+        submit = gr.Button("Send", interactive=False, scale=1)
+
+    vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit])
+    submit.click(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
+    msg.submit(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
+    def load_vehicles():
+        return gr.Dropdown(choices=get_available_vehicles())
+
+    gradio_app.load(load_vehicles, outputs=vehicle_dd)
+
+app = gr.mount_gradio_app(app, gradio_app, path="/")

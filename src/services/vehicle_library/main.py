@@ -47,8 +47,9 @@ def health():
     return {"status": "ok"}
 
 @app.get("/vehicles")
-def get_avavailable_vehicles():
-    return VEHICLES.keys()
+def get_available_vehicles() -> list[str]:
+    """Gets the names of all available vehicles"""
+    return list(VEHICLES.keys())
 
 @app.get("/vehicles/state")
 def get_vehicle_state(vehicle: str = Query(..., description="Vehicle identifier (YEAR MAKE MODEL)")):
