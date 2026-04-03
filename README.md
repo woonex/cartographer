@@ -1,6 +1,6 @@
 # cartographer
 
-Cartographer is a project designed to be a chatbot about a vehicles in the user's garage. It utilizes an LLM to decide which tool queries to use for retrieving information from the current state of the car, Retrieval Augmented Generation (RAG) using the owner's manual PDFs, or specification info. The tool is designed primarily to target users of cars, not service technicians.
+Cartographer is a project designed to be a chatbot about a vehicles in the user's garage (a play on words for **car**tographer to map info about cars). It utilizes an LLM to decide which tool queries to use for retrieving information from the current state of the car, Retrieval Augmented Generation (RAG) using the owner's manual PDFs, or specification info. The tool is designed primarily to target users of cars, not service technicians.
 
 # Architecture
 The architecture of the app is designed to work in either a local on-device setting or a cloud infrastructure deployment.

@@ -6,8 +6,9 @@ import tempfile
 
 from fastapi import Depends, FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
+
 from ingest import ingest_vehicle, qdrant
-from settings import Settings, get_settings
+from settings_ingestion import Settings, get_settings
 
 app = FastAPI()
 

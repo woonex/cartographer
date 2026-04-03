@@ -10,7 +10,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, FieldCondition, Filter, FilterSelector, MatchValue, PointStruct, VectorParams
 from sentence_transformers import SentenceTransformer
-from settings import get_settings
+
+from settings_ingestion import get_settings
 
 logger = logging.getLogger(__name__)
 

@@ -13,6 +13,9 @@ dependencies = [
     "langchain-text-splitters",
     "pymupdf",
     "qdrant-client",
+    "langchain",
+    "langchain-groq",
+    "httpx",
 ]
 
 [project.optional-dependencies]
@@ -24,9 +27,11 @@ dev = [
 
 [tool.ruff]
 line-length = 120
+src = ["src/services/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
