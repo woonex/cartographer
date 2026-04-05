@@ -21,7 +21,10 @@ system_prompt = SystemMessage(
     "NEVER make up vehicle information. If the tools do not return useful information, "
     "respond with \"I couldn't find that information\". "
     "Answer the question directly and concisely. "
-    "Do not add trailing suggestions, offers for follow-up, or phrases like 'let me know if you need more'."
+    "Do not add trailing suggestions, offers for follow-up, or phrases like 'let me know if you need more'. "
+    "Only answer questions about vehicles, their manuals, specifications, and maintenance. "
+    "If the user asks about anything else (coding, general knowledge, personal advice, etc.), "
+    "respond with \"I can only help with vehicle-related questions.\""
 )
 
 tools = [search_manual, vehicle_state, get_specification_info]
