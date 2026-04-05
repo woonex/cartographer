@@ -1,0 +1,82 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Ingestion Service",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload",
+                "--port",
+                "8001"
+            ],
+            "cwd": "${workspaceFolder}/src/services/ingestion",
+            "env": {
+                "INGESTION_VECTOR_STORE_URL": "http://localhost:6333"
+            }
+        },
+        {
+            "name": "Query Service",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload",
+                "--port",
+                "8002"
+            ],
+            "cwd": "${workspaceFolder}/src/services/query",
+            "env": {
+                "QUERY_VECTOR_STORE_URL": "http://localhost:6333",
+                "QUERY_VEHICLE_LIBRARY_URL": "http://localhost:8003",
+                "QUERY_SPECIFICATIONS_LIBRARY_URL": "http://localhost:8004"
+            }
+        },
+        {
+            "name": "Vehicle Library Service",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload",
+                "--port",
+                "8003"
+            ],
+            "cwd": "${workspaceFolder}/src/services/vehicle_library",
+        },
+        {
+            "name": "Vehicle Specification Service",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload",
+                "--port",
+                "8004"
+            ],
+            "cwd": "${workspaceFolder}/src/services/specification_library",
+        },
+        {
+            "name": "Frontend Service",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload",
+                "--port",
+                "8005"
+            ],
+            "cwd": "${workspaceFolder}/src/services/frontend",
+            "env": {
+                "FRONTEND_VEHICLE_LIBRARY_URL": "http://localhost:8003",
+                "FRONTEND_QUERY_URL": "http://localhost:8002"
+            }
+        },
+    ]
+}

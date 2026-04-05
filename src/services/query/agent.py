@@ -1,3 +1,5 @@
+from typing import AsyncGenerator
+
 from dotenv import load_dotenv
 from groq import BadRequestError
 from langchain_core.messages import AIMessage, SystemMessage
@@ -15,10 +17,11 @@ load_dotenv()
 system_prompt = SystemMessage(
     "You are a helpful vehicle assistant. "
     "You have access to tools to answer questions about the user's vehicles. "
-    "You must ground your answers in the outputs from the tools. "
-    "If the tool searches do not provide useful information, directly tell the user. "
-    "NEVER make up an answer. If you can't find the info in all of the tool calls, "
-    "respond with \"I couldn't find that information\""
+    "For vehicle-related questions, always use your tools and ground your answers in their outputs. "
+    "NEVER make up vehicle information. If the tools do not return useful information, "
+    "respond with \"I couldn't find that information\". "
+    "Answer the question directly and concisely. "
+    "Do not add trailing suggestions, offers for follow-up, or phrases like 'let me know if you need more'."
 )
 
 tools = [search_manual, vehicle_state, get_specification_info]
@@ -58,16 +61,54 @@ graph.add_edge("tools", "agent")
 agent = graph.compile()
 
 
-def ask(question: str, vehicle: str) -> str:
-    result = agent.invoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": f"[Context: The user's active vehicle is currently {vehicle}.]\n\n{question}",
-                }
-            ]
-        }
-    )
-    print(result)
+def ask(question: str, vehicle: str, history: list[dict] | None = None) -> str:
+    prior = history or []
+    current = {
+        "role": "user",
+        "content": f"[Context: The user's active vehicle is currently {vehicle}.]\n\n{question}",
+    }
+    result = agent.invoke({"messages": prior + [current]})
     return result["messages"][-1].content
+
+
+async def ask_stream(question: str, vehicle: str, history: list[dict] | None = None) -> AsyncGenerator[dict, None]:
+    prior = history or []
+    input_data = {
+        "messages": prior + [{
+            "role": "user",
+            "content": f"[Context: The user's active vehicle is currently {vehicle}.]\n\n{question}",
+        }]
+    }
+    async for event in agent.astream_events(input_data, version="v2"):
+        kind = event["event"]
+
+        if kind == "on_tool_start":
+            yield {
+                "type": "tool_call",
+                "name": event["name"],
+                "args": event["data"].get("input", {}),
+            }
+
+        elif kind == "on_tool_end":
+            output = event["data"].get("output", "")
+            if hasattr(output, "content"):
+                output = output.content
+            yield {
+                "type": "tool_result",
+                "name": event["name"],
+                "content": str(output),
+            }
+
+        elif kind == "on_chat_model_end":
+            response = event["data"].get("output")
+            if response:
+                reasoning = response.additional_kwargs.get("reasoning_content", "")
+                if reasoning:
+                    yield {"type": "reasoning", "content": reasoning}
+
+        elif kind == "on_chat_model_stream":
+            chunk = event["data"].get("chunk")
+            if chunk and chunk.content:
+                yield {"type": "answer_token", "content": chunk.content}
+
+    yield {"type": "done"}

@@ -1,3 +1,5 @@
+import threading
+
 from langchain.tools import tool
 from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
@@ -6,8 +8,39 @@ from sentence_transformers import SentenceTransformer
 from settings_query import get_settings
 
 settings = get_settings()
-model = SentenceTransformer(settings.embedding_model)
+
 qdrant = QdrantClient(url=settings.vector_store_url)
+
+
+class _EmbeddingModel:
+    def __init__(self):
+        self._model: SentenceTransformer | None = None
+        self._ready = threading.Event()
+
+    def start_load(self):
+        def _load():
+            self._model = SentenceTransformer(settings.embedding_model)
+            self._ready.set()
+
+        threading.Thread(target=_load, daemon=True).start()
+
+    def is_ready(self) -> bool:
+        return self._ready.is_set()
+
+    def encode(self, text: str):
+        self._ready.wait()
+        return self._model.encode(text)
+
+
+_embedding = _EmbeddingModel()
+
+
+def start_model_load():
+    _embedding.start_load()
+
+
+def is_model_ready() -> bool:
+    return _embedding.is_ready()
 
 
 @tool
@@ -27,7 +60,7 @@ def search_manual(search_info: str = "", vehicle: str = "") -> str:
 
     collection_name = settings.collection_name
     top_k = settings.top_k
-    vector = model.encode(search_info)
+    vector = _embedding.encode(search_info)
 
     response = qdrant.query_points(
         collection_name=collection_name,
