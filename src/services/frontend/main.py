@@ -4,10 +4,12 @@ import gradio as gr
 import httpx
 from fastapi import Depends, FastAPI
 
+from rate_limiter import RateLimiter
 from settings_frontend import Settings, get_settings
 
 settings = get_settings()
 app = FastAPI()
+_rate_limiter = RateLimiter(settings)
 
 
 def check_query_ready() -> bool:
@@ -59,9 +61,23 @@ def _render(tool_names: list[str], tool_content: str, answer: str, streaming: bo
     return "\n".join(parts)
 
 
-def respond(message: str, history: list, vehicle: str):
+def _get_client_ip(request: gr.Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.client.host
+
+
+def respond(message: str, history: list, vehicle: str, request: gr.Request):
     history = list(history)
     history.append({"role": "user", "content": message})
+
+    allowed, limit_msg = _rate_limiter.check(_get_client_ip(request))
+    if not allowed:
+        history.append({"role": "assistant", "content": limit_msg})
+        yield "", history
+        return
+
     history.append({"role": "assistant", "content": ""})
     yield "", history
 
