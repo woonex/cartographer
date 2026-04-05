@@ -12,7 +12,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - INGESTION_VECTOR_STORE_URL=qdrant:6333
+      - INGESTION_VECTOR_STORE_URL=http://qdrant:6333
     depends_on:
       - qdrant
 
