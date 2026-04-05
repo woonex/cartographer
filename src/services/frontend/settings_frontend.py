@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     rate_limit_whitelist: str = ""  # comma-separated IPs, e.g. "1.2.3.4,5.6.7.8"
     dynamodb_table: str = "cartographer-rate-limits"
     dynamodb_region: str = "us-east-1"
+    auth_username: str = "demo"
+    auth_password: str = ""  # required in production; empty disables auth
 
     model_config = {"env_prefix": "FRONTEND_"}
 

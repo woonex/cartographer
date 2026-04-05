@@ -183,4 +183,5 @@ with gr.Blocks() as gradio_app:
     gradio_app.load(load_vehicles, outputs=vehicle_dd)
     gradio_app.load(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
 
-app = gr.mount_gradio_app(app, gradio_app, path="/")
+_auth = (settings.auth_username, settings.auth_password) if settings.auth_password else None
+app = gr.mount_gradio_app(app, gradio_app, path="/", auth=_auth)
