@@ -89,7 +89,7 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
     with httpx.stream(
         "POST",
         f"{settings.query_url}/query/stream",
-        json={"vehicle": vehicle, "question": message},
+        json={"vehicle": vehicle, "question": message, "history": history[:-2]},
         timeout=120,
     ) as response:
         response.raise_for_status()
@@ -163,9 +163,16 @@ def on_ready_tick(vehicle: str):
 
 with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     gr.HTML(
-        "<style>footer, .footer, div[class*='footer'] { display: none !important; } #chatbot { height: 55vh !important; }</style>"
+        "<style>"
+        "footer, .footer, div[class*='footer'] { display: none !important; } "
+        "#chatbot { height: 55vh !important; }"
+        "</style>"
         "<h1 style='margin:0 0 0.25rem'>Cartographer</h1>"
-        "<p style='margin:0 0 0.75rem; color: var(--body-text-color-subdued)'>A conversational assistant for vehicle owners. Select your vehicle, then ask questions about maintenance, specifications, or warning lights. Answers are drawn from your owner's manual and manufacturer data.</p>"
+        "<p style='margin:0 0 0.75rem; color: var(--body-text-color-subdued)'>"
+        "A conversational assistant for vehicle owners. Select your vehicle, then ask questions "
+        "about maintenance, specifications, or warning lights. Answers are drawn from your "
+        "owner's manual and manufacturer data."
+        "</p>"
     )
     status_md = gr.Markdown("Query service is starting up, please wait...", visible=True)
     vehicle_dd = gr.Dropdown(label="Vehicle", interactive=True, allow_custom_value=True)

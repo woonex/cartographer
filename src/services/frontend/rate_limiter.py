@@ -8,6 +8,7 @@ without AWS credentials), so local development works without any extra setup.
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from settings_frontend import Settings
 
@@ -52,7 +53,7 @@ class _DynamoDBStore:
                     "#reset_at = if_not_exists(#reset_at, :reset), "
                     "#ttl = if_not_exists(#ttl, :ttl)"
                 ),
-                ConditionExpression=Attr("reset_at").not_exists() | Attr("reset_at").gt(now),
+                ConditionExpression=Attr("reset_at").not_exists() | Attr("reset_at").gt(Decimal(str(now))),
                 ExpressionAttributeNames={
                     "#count": "count",
                     "#reset_at": "reset_at",
@@ -61,7 +62,7 @@ class _DynamoDBStore:
                 ExpressionAttributeValues={
                     ":zero": 0,
                     ":one": 1,
-                    ":reset": str(reset_at),
+                    ":reset": Decimal(str(reset_at)),
                     ":ttl": ttl,
                 },
                 ReturnValues="ALL_NEW",
@@ -74,7 +75,7 @@ class _DynamoDBStore:
                 self._table.put_item(Item={
                     "ip": ip,
                     "count": 1,
-                    "reset_at": str(reset_at),
+                    "reset_at": Decimal(str(reset_at)),
                     "ttl": ttl,
                 })
                 return 1, reset_at

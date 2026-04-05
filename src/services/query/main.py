@@ -1,6 +1,7 @@
 import json
 import threading
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -11,8 +12,6 @@ from settings_query import get_settings
 
 _settings = get_settings()
 _qdrant = QdrantClient(url=_settings.vector_store_url)
-
-app = FastAPI()
 
 _ask = None
 _ask_stream = None
@@ -39,9 +38,13 @@ def _init_all():
     print(f"Query service ready ({time.perf_counter() - t0:.1f}s init)", flush=True)
 
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     threading.Thread(target=_init_all, daemon=True).start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health")
@@ -98,7 +101,7 @@ async def query_stream(req: QueryRequest):
     """
     async def generate():
         try:
-            async for event in _ask_stream(req.question, req.vehicle):
+            async for event in _ask_stream(req.question, req.vehicle, req.history):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"

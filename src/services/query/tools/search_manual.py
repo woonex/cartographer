@@ -28,6 +28,7 @@ class _EmbeddingModel:
         return self._ready.is_set()
 
     def encode(self, text: str):
+        self._ready.wait()
         return self._model.encode(text)
 
 
