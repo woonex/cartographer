@@ -29,6 +29,7 @@ services:
       - QUERY_VECTOR_STORE_URL=http://qdrant:6333
       - QUERY_VEHICLE_LIBRARY_URL=http://vehicle_library:8003
       - QUERY_SPECIFICATIONS_LIBRARY_URL=http://specification_library:8004
+      - QUERY_MIN_SIMILARITY=0.5
     depends_on:
       - qdrant
       - vehicle_library
