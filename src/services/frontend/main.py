@@ -83,6 +83,7 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
 
     tool_names: list[str] = []
     tool_content = ""
+    pending_reasoning = ""
     answer = ""
 
     with httpx.stream(
@@ -98,9 +99,12 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
             event = json.loads(line[6:])
 
             if event["type"] == "reasoning":
-                tool_content += f"*{event['content']}*\n\n"
+                pending_reasoning += f"*{event['content']}*\n\n"
 
             elif event["type"] == "tool_call":
+                if pending_reasoning:
+                    tool_content += pending_reasoning
+                    pending_reasoning = ""
                 tool_names.append(event["name"])
                 args_json = json.dumps(event["args"], indent=2)
                 tool_content += f"**{event['name']}**\n\nInput:\n```json\n{args_json}\n```\n\n"
@@ -157,10 +161,15 @@ def on_ready_tick(vehicle: str):
     )
 
 
-with gr.Blocks() as gradio_app:
+with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
+    gr.HTML(
+        "<style>footer, .footer, div[class*='footer'] { display: none !important; } #chatbot { height: 55vh !important; }</style>"
+        "<h1 style='margin:0 0 0.25rem'>Cartographer</h1>"
+        "<p style='margin:0 0 0.75rem; color: var(--body-text-color-subdued)'>A conversational assistant for vehicle owners. Select your vehicle, then ask questions about maintenance, specifications, or warning lights. Answers are drawn from your owner's manual and manufacturer data.</p>"
+    )
     status_md = gr.Markdown("Query service is starting up, please wait...", visible=True)
     vehicle_dd = gr.Dropdown(label="Vehicle", interactive=True, allow_custom_value=True)
-    chatbot = gr.Chatbot()
+    chatbot = gr.Chatbot(elem_id="chatbot")
     with gr.Row():
         msg = gr.Textbox(
             placeholder="Select a vehicle above to begin...",
