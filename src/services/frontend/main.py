@@ -1,14 +1,21 @@
 import json
 
-from fastapi import Depends, FastAPI
-from pydantic import BaseModel
 import gradio as gr
 import httpx
+from fastapi import Depends, FastAPI
 
 from settings_frontend import Settings, get_settings
 
 settings = get_settings()
 app = FastAPI()
+
+
+def check_query_ready() -> bool:
+    try:
+        resp = httpx.get(f"{settings.query_url}/ready", timeout=2)
+        return resp.status_code == 200
+    except Exception:
+        return False
 
 
 @app.get("/health")
@@ -107,12 +114,35 @@ def respond(message: str, history: list, vehicle: str):
 
 
 def on_vehicle_select(vehicle: str):
+    if not check_query_ready():
+        return gr.Textbox(interactive=False), gr.Button(interactive=False)
     enabled = bool(vehicle)
     placeholder = "Ask a question..." if enabled else "Select a vehicle above to begin..."
     return gr.Textbox(interactive=enabled, placeholder=placeholder), gr.Button(interactive=enabled)
 
 
+def on_ready_tick(vehicle: str):
+    """Polls /ready and updates UI state. Stops timer once service is up."""
+    ready = check_query_ready()
+    if ready:
+        has_vehicle = bool(vehicle)
+        placeholder = "Ask a question..." if has_vehicle else "Select a vehicle above to begin..."
+        return (
+            gr.Markdown(visible=False),
+            gr.Textbox(interactive=has_vehicle, placeholder=placeholder),
+            gr.Button(interactive=has_vehicle),
+            gr.Timer(active=False),
+        )
+    return (
+        gr.Markdown("Query service is starting up, please wait...", visible=True),
+        gr.Textbox(interactive=False),
+        gr.Button(interactive=False),
+        gr.Timer(active=True),
+    )
+
+
 with gr.Blocks() as gradio_app:
+    status_md = gr.Markdown("Query service is starting up, please wait...", visible=True)
     vehicle_dd = gr.Dropdown(label="Vehicle", interactive=True, allow_custom_value=True)
     chatbot = gr.Chatbot()
     with gr.Row():
@@ -124,6 +154,9 @@ with gr.Blocks() as gradio_app:
         )
         submit = gr.Button("Send", interactive=False, scale=1)
 
+    poll_timer = gr.Timer(2.0, active=True)
+    poll_timer.tick(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
+
     vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit])
     submit.click(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
     msg.submit(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
@@ -132,5 +165,6 @@ with gr.Blocks() as gradio_app:
         return gr.Dropdown(choices=get_available_vehicles())
 
     gradio_app.load(load_vehicles, outputs=vehicle_dd)
+    gradio_app.load(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
 
 app = gr.mount_gradio_app(app, gradio_app, path="/")

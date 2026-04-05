@@ -67,7 +67,6 @@ def ask(question: str, vehicle: str, history: list[dict] | None = None) -> str:
         "content": f"[Context: The user's active vehicle is currently {vehicle}.]\n\n{question}",
     }
     result = agent.invoke({"messages": prior + [current]})
-    print(result)
     return result["messages"][-1].content
 
 

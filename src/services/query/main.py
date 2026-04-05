@@ -1,14 +1,47 @@
 import json
+import threading
+import time
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
+from qdrant_client import QdrantClient
 
-from agent import ask, ask_stream
-from settings_query import Settings, get_settings
-from tools.search_manual import qdrant
+from settings_query import get_settings
+
+_settings = get_settings()
+_qdrant = QdrantClient(url=_settings.vector_store_url)
 
 app = FastAPI()
+
+_ask = None
+_ask_stream = None
+_agent_ready = threading.Event()
+_model_ready = threading.Event()
+
+
+def _init_all():
+    t0 = time.perf_counter()
+
+    from tools.search_manual import is_model_ready, start_model_load
+    start_model_load()
+
+    from agent import ask, ask_stream
+    global _ask, _ask_stream
+    _ask = ask
+    _ask_stream = ask_stream
+    _agent_ready.set()
+
+    while not is_model_ready():
+        time.sleep(0.1)
+    _model_ready.set()
+
+    print(f"Query service ready ({time.perf_counter() - t0:.1f}s init)", flush=True)
+
+
+@app.on_event("startup")
+async def startup_event():
+    threading.Thread(target=_init_all, daemon=True).start()
 
 
 @app.get("/health")
@@ -18,18 +51,22 @@ def health():
 
 
 @app.get("/ready")
-def ready(settings: Settings = Depends(get_settings)):
-    """If the server is ready to process ingestion
+def ready():
+    """If the server is ready to process queries
 
     returns:
     200 if okay
     503 if service unavailable
     """
     try:
-        qdrant.get_collections()
-        return {"status": "ready"}
+        _qdrant.get_collections()
     except Exception:
         return JSONResponse(status_code=503, content={"status": "not ready", "reason": "vector store unreachable"})
+    if not _agent_ready.is_set():
+        return JSONResponse(status_code=503, content={"status": "not ready", "reason": "agent initializing"})
+    if not _model_ready.is_set():
+        return JSONResponse(status_code=503, content={"status": "not ready", "reason": "embedding model loading"})
+    return {"status": "ready"}
 
 
 class QueryRequest(BaseModel):
@@ -44,7 +81,7 @@ class QueryResponse(BaseModel):
 
 @app.post("/query", response_model=QueryResponse)
 async def query(req: QueryRequest) -> QueryResponse:
-    answer = ask(req.question, req.vehicle, req.history)
+    answer = _ask(req.question, req.vehicle, req.history)
     return QueryResponse(answer=answer)
 
 
@@ -61,7 +98,7 @@ async def query_stream(req: QueryRequest):
     """
     async def generate():
         try:
-            async for event in ask_stream(req.question, req.vehicle):
+            async for event in _ask_stream(req.question, req.vehicle):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
