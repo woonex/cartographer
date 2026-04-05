@@ -86,6 +86,7 @@ def search():
 
         import tools.search_manual as sm
         importlib.reload(sm)
+        sm.start_model_load()
 
         yield sm.search_manual
 
