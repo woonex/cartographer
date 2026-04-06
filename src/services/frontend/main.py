@@ -4,6 +4,7 @@ import gradio as gr
 import httpx
 from fastapi import Depends, FastAPI
 
+from auth import build_auth_verifier
 from rate_limiter import RateLimiter
 from settings_frontend import Settings, get_settings
 
@@ -203,5 +204,5 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     gradio_app.load(load_vehicles, outputs=vehicle_dd)
     gradio_app.load(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
 
-_auth = (settings.auth_username, settings.auth_password) if settings.auth_password else None
+_auth = build_auth_verifier(settings.auth_users_secret)
 app = gr.mount_gradio_app(app, gradio_app, path="/", auth=_auth)
