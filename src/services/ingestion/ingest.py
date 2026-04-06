@@ -4,6 +4,7 @@ Ingestion pipeline and supplementary functions
 
 import logging
 import uuid
+from collections.abc import Callable
 
 import fitz
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -19,10 +20,14 @@ settings = get_settings()
 model = SentenceTransformer(settings.embedding_model)
 qdrant = QdrantClient(url=settings.vector_store_url)
 
+BATCH_SIZE = 32
+
+
 def ingest_pdf(pdf_path: str) -> str:
     """Gets raw text from PDF"""
     doc = fitz.open(pdf_path)
     return "\n".join(page.get_text() for page in doc)
+
 
 def chunk_text(text: str) -> list[str]:
     """Chunks text into overlapping chunks"""
@@ -33,25 +38,27 @@ def chunk_text(text: str) -> list[str]:
     )
     return splitter.split_text(text)
 
-def ingest_vehicle(vehicle_name: str, document_name: str, pdf_path: str):
-    """Ingests a vehicle pdf and adds encoded vector for later RAG use"""
-    logger.info(f"Ingesting {document_name} for {vehicle_name}")
-    text = ingest_pdf(pdf_path)
-    chunks = chunk_text(text)
-    embeddings = model.encode(chunks).tolist()
 
+def ingest_vehicle_chunks(
+    vehicle_name: str,
+    document_name: str,
+    chunks: list[str],
+    on_batch: Callable[[int], None] | None = None,
+):
+    """Embeds and upserts pre-chunked text into the vector store.
+
+    on_batch is called after each batch with the cumulative completed chunk count.
+    """
     collection_name = settings.collection_name
     vector_size = model.get_sentence_embedding_dimension()
 
-    # first time setup
     if not qdrant.collection_exists(collection_name):
         qdrant.create_collection(
             collection_name=collection_name,
             vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
         )
 
-    # clear existing chunks for this vehicle and document before inserting
-    # if re-uploading to prevent minor differences in files giving more embeddings than necessary
+    # Clear existing chunks for this vehicle/document before inserting
     qdrant.delete(
         collection_name=collection_name,
         points_selector=FilterSelector(
@@ -64,15 +71,29 @@ def ingest_vehicle(vehicle_name: str, document_name: str, pdf_path: str):
         ),
     )
 
-    # embed in structure for qdrant
-    points = [
-        PointStruct(
-            id=str(uuid.uuid4()),
-            vector=embedding,
-            payload={"vehicle": vehicle_name, "document": document_name, "text": chunk},
-        )
-        for chunk, embedding in zip(chunks, embeddings)
-    ]
+    completed = 0
+    for i in range(0, len(chunks), BATCH_SIZE):
+        batch = chunks[i:i + BATCH_SIZE]
+        embeddings = model.encode(batch).tolist()
+        points = [
+            PointStruct(
+                id=str(uuid.uuid4()),
+                vector=embedding,
+                payload={"vehicle": vehicle_name, "document": document_name, "text": chunk},
+            )
+            for chunk, embedding in zip(batch, embeddings)
+        ]
+        qdrant.upsert(collection_name=collection_name, points=points)
+        completed += len(batch)
+        if on_batch:
+            on_batch(completed)
 
-    qdrant.upsert(collection_name=collection_name, points=points)
-    logger.info(f"Stored {len(points)} chunks for {vehicle_name}/{document_name}")
+    logger.info(f"Stored {len(chunks)} chunks for {vehicle_name}/{document_name}")
+
+
+def ingest_vehicle(vehicle_name: str, document_name: str, pdf_path: str):
+    """Ingests a vehicle pdf end-to-end (no progress tracking)."""
+    logger.info(f"Ingesting {document_name} for {vehicle_name}")
+    text = ingest_pdf(pdf_path)
+    chunks = chunk_text(text)
+    ingest_vehicle_chunks(vehicle_name, document_name, chunks)
