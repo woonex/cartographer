@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI
 from auth import build_auth_verifier
 from rate_limiter import RateLimiter
 from settings_frontend import Settings, get_settings
-from usage_logger import UsageLogger
+from usage_logger import UsageLogger, query_usage
 
 settings = get_settings()
 app = FastAPI()
@@ -38,6 +38,12 @@ def ready(settings: Settings = Depends(get_settings)):
     503 if service unavailable
     """
     return {"status": "ready"}
+
+
+@app.get("/admin/usage")
+def admin_usage(username: str | None = None):
+    """Returns usage log records, optionally filtered by username."""
+    return query_usage(settings, username=username)
 
 
 @app.get("/available-vehicles")

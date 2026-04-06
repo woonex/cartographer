@@ -8,6 +8,10 @@ Falls back to a no-op if DynamoDB is unavailable (e.g. local dev).
 """
 
 from datetime import datetime, timezone
+from typing import Any
+
+import boto3
+from boto3.dynamodb.conditions import Key
 
 from settings_frontend import Settings
 
@@ -19,7 +23,6 @@ class _NoOpLogger:
 
 class _DynamoDBLogger:
     def __init__(self, table: str, region: str):
-        import boto3
         self._table = boto3.resource("dynamodb", region_name=region).Table(table)
 
     def log(self, username: str, vehicle: str) -> None:
@@ -48,3 +51,17 @@ class UsageLogger:
             self._logger.log(username, vehicle)
         except Exception as e:
             print(f"Usage log write failed: {e}", flush=True)
+
+
+def query_usage(settings: Settings, username: str | None = None) -> list[dict[str, Any]]:
+    """Returns usage records, newest first. Filters by username if provided."""
+    table = boto3.resource("dynamodb", region_name=settings.dynamodb_region).Table(settings.usage_log_table)
+    if username:
+        resp = table.query(
+            KeyConditionExpression=Key("username").eq(username),
+            ScanIndexForward=False,
+        )
+    else:
+        resp = table.scan()
+    items = resp.get("Items", [])
+    return sorted(items, key=lambda r: r["timestamp"], reverse=True)
