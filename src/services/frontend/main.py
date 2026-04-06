@@ -7,10 +7,12 @@ from fastapi import Depends, FastAPI
 from auth import build_auth_verifier
 from rate_limiter import RateLimiter
 from settings_frontend import Settings, get_settings
+from usage_logger import UsageLogger
 
 settings = get_settings()
 app = FastAPI()
 _rate_limiter = RateLimiter(settings)
+_usage_logger = UsageLogger(settings)
 
 
 def check_query_ready() -> bool:
@@ -135,6 +137,7 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
 
     # Final render: collapse the steps block now that we have the answer
     history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=False)
+    _usage_logger.log(username=request.username, vehicle=vehicle)
     yield "", history
 
 

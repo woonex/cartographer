@@ -28,9 +28,10 @@ def build_auth_verifier(secret_name: str):
 
     try:
         users = _fetch_users(secret_name)
-    except Exception:
-        print("Auth secret unavailable — running without authentication", flush=True)
-        return None
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to load auth users from Secrets Manager secret '{secret_name}': {exc}"
+        ) from exc
 
     def verify(username: str, password: str) -> bool:
         stored = users.get(username)
