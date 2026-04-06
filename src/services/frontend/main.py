@@ -92,6 +92,10 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
         json={"vehicle": vehicle, "question": message, "history": history[:-2]},
         timeout=120,
     ) as response:
+        if response.status_code == 422:
+            history[-1]["content"] = "Your message is too long. Please keep questions under 500 characters."
+            yield "", history
+            return
         response.raise_for_status()
         for line in response.iter_lines():
             if not line.startswith("data: "):
