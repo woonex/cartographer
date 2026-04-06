@@ -1,0 +1,6 @@
+aws_region   = "us-east-1"
+groq_api_key = "gsk_..."
+my_ip_cidr   = "YOUR_PUBLIC_IP/32"  # curl ifconfig.me to find yours
+
+# Auth users are managed separately in Secrets Manager after apply — not via tfvars.
+# See "Managing users" in README.md.
