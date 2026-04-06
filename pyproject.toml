@@ -18,6 +18,8 @@ dependencies = [
     "httpx",
     "jinja2",
     "gradio",
+    "boto3",
+    "bcrypt",
 ]
 
 [project.optional-dependencies]
