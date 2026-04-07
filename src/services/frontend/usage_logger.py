@@ -38,13 +38,9 @@ class UsageLogger:
         self._logger = self._init_logger(settings)
 
     def _init_logger(self, settings: Settings):
-        try:
-            logger = _DynamoDBLogger(settings.usage_log_table, settings.dynamodb_region)
-            logger._table.load()
-            return logger
-        except Exception:
-            print("Usage log DynamoDB table unavailable — logging disabled", flush=True)
+        if not settings.usage_log_table:
             return _NoOpLogger()
+        return _DynamoDBLogger(settings.usage_log_table, settings.dynamodb_region)
 
     def log(self, username: str, vehicle: str) -> None:
         try:
