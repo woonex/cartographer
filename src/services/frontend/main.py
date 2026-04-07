@@ -110,9 +110,11 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
             if not line.startswith("data: "):
                 continue
             event = json.loads(line[6:])
+            should_yield = False
 
             if event["type"] == "reasoning":
                 pending_reasoning += f"*{event['content']}*\n\n"
+                # buffered until next tool_call — nothing visible changes yet
 
             elif event["type"] == "tool_call":
                 if pending_reasoning:
@@ -121,6 +123,7 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
                 tool_names.append(event["name"])
                 args_json = json.dumps(event["args"], indent=2)
                 tool_content += f"**{event['name']}**\n\nInput:\n```json\n{args_json}\n```\n\n"
+                should_yield = True
 
             elif event["type"] == "tool_result":
                 try:
@@ -128,20 +131,26 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
                 except (json.JSONDecodeError, TypeError):
                     result_str = event["content"]
                 tool_content += f"Result:\n```json\n{result_str}\n```\n\n"
+                should_yield = True
 
             elif event["type"] == "answer_token":
                 answer += event["content"]
+                should_yield = True
 
             elif event["type"] == "error":
                 answer = f"Error: {event['content']}"
+                should_yield = True
 
             elif event["type"] == "done":
                 break
 
-            history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=not answer)
-            yield "", history
+            if should_yield:
+                history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=not answer)
+                yield "", history
 
     # Final render: collapse the steps block now that we have the answer
+    if not answer:
+        answer = "I wasn't able to generate a response. Please try asking your question again."
     history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=False)
     _usage_logger.log(username=request.username, vehicle=vehicle)
     yield "", history
@@ -179,8 +188,18 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     gr.HTML(
         "<style>"
         "footer, .footer, div[class*='footer'] { display: none !important; } "
-        "#chatbot { height: 55vh !important; }"
+        "#chatbot { overflow-anchor: none; } "
+        "#chatbot .wrap { scroll-behavior: auto !important; } "
+        "body { overflow: hidden; height: 100dvh; } "
         "</style>"
+        "<script>"
+        "document.addEventListener('focusin', function(e) {"
+        "  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {"
+        "    var pos = window.scrollY;"
+        "    setTimeout(function() { window.scrollTo(0, pos); }, 50);"
+        "  }"
+        "});"
+        "</script>"
         "<h1 style='margin:0 0 0.25rem'>Cartographer</h1>"
         "<p style='margin:0 0 0.75rem; color: var(--body-text-color-subdued)'>"
         "A conversational assistant for vehicle owners. Select your vehicle, then ask questions "
@@ -190,7 +209,7 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     )
     status_md = gr.Markdown("Query service is starting up, please wait...", visible=True)
     vehicle_dd = gr.Dropdown(label="Vehicle", interactive=True, allow_custom_value=True)
-    chatbot = gr.Chatbot(elem_id="chatbot")
+    chatbot = gr.Chatbot(elem_id="chatbot", height="45dvh", autoscroll=False)
     with gr.Row():
         msg = gr.Textbox(
             placeholder="Select a vehicle above to begin...",
@@ -200,7 +219,7 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
         )
         submit = gr.Button("Send", interactive=False, scale=1)
 
-    poll_timer = gr.Timer(2.0, active=True)
+    poll_timer = gr.Timer(2.0, active=False)
     poll_timer.tick(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
 
     vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit])
