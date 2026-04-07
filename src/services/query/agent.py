@@ -27,7 +27,7 @@ system_prompt = SystemMessage(
     "respond with \"I can only help with vehicle-related questions.\""
 )
 
-tools = [search_manual, vehicle_state, get_specification_info]
+tools = [search_manual, vehicle_state, get_specification_info, get_maintenance_schedule]
 
 model = ChatGroq(model="openai/gpt-oss-120b").bind_tools(tools)
 
