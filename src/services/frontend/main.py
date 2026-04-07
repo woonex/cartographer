@@ -158,10 +158,10 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
 
 def on_vehicle_select(vehicle: str):
     if not check_query_ready():
-        return gr.Textbox(interactive=False), gr.Button(interactive=False)
+        return gr.Textbox(interactive=False), gr.Button(interactive=False), []
     enabled = bool(vehicle)
     placeholder = "Ask a question..." if enabled else "Select a vehicle above to begin..."
-    return gr.Textbox(interactive=enabled, placeholder=placeholder), gr.Button(interactive=enabled)
+    return gr.Textbox(interactive=enabled, placeholder=placeholder), gr.Button(interactive=enabled), []
 
 
 def on_ready_tick(vehicle: str):
@@ -222,7 +222,7 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     poll_timer = gr.Timer(2.0, active=False)
     poll_timer.tick(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
 
-    vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit])
+    vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit, chatbot])
     submit.click(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
     msg.submit(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
 
