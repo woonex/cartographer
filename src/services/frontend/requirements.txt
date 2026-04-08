@@ -5,3 +5,4 @@ jinja2
 gradio
 pydantic-settings
 boto3
+bcrypt

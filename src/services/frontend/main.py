@@ -4,12 +4,15 @@ import gradio as gr
 import httpx
 from fastapi import Depends, FastAPI
 
+from auth import build_auth_verifier
 from rate_limiter import RateLimiter
 from settings_frontend import Settings, get_settings
+from usage_logger import UsageLogger, query_usage
 
 settings = get_settings()
 app = FastAPI()
 _rate_limiter = RateLimiter(settings)
+_usage_logger = UsageLogger(settings)
 
 
 def check_query_ready() -> bool:
@@ -35,6 +38,12 @@ def ready(settings: Settings = Depends(get_settings)):
     503 if service unavailable
     """
     return {"status": "ready"}
+
+
+@app.get("/admin/usage")
+def admin_usage(username: str | None = None):
+    """Returns usage log records, optionally filtered by username."""
+    return query_usage(settings, username=username)
 
 
 @app.get("/available-vehicles")
@@ -92,14 +101,20 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
         json={"vehicle": vehicle, "question": message, "history": history[:-2]},
         timeout=120,
     ) as response:
+        if response.status_code == 422:
+            history[-1]["content"] = "Your message is too long. Please keep questions under 500 characters."
+            yield "", history
+            return
         response.raise_for_status()
         for line in response.iter_lines():
             if not line.startswith("data: "):
                 continue
             event = json.loads(line[6:])
+            should_yield = False
 
             if event["type"] == "reasoning":
                 pending_reasoning += f"*{event['content']}*\n\n"
+                # buffered until next tool_call — nothing visible changes yet
 
             elif event["type"] == "tool_call":
                 if pending_reasoning:
@@ -108,6 +123,7 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
                 tool_names.append(event["name"])
                 args_json = json.dumps(event["args"], indent=2)
                 tool_content += f"**{event['name']}**\n\nInput:\n```json\n{args_json}\n```\n\n"
+                should_yield = True
 
             elif event["type"] == "tool_result":
                 try:
@@ -115,30 +131,37 @@ def respond(message: str, history: list, vehicle: str, request: gr.Request):
                 except (json.JSONDecodeError, TypeError):
                     result_str = event["content"]
                 tool_content += f"Result:\n```json\n{result_str}\n```\n\n"
+                should_yield = True
 
             elif event["type"] == "answer_token":
                 answer += event["content"]
+                should_yield = True
 
             elif event["type"] == "error":
                 answer = f"Error: {event['content']}"
+                should_yield = True
 
             elif event["type"] == "done":
                 break
 
-            history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=not answer)
-            yield "", history
+            if should_yield:
+                history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=not answer)
+                yield "", history
 
     # Final render: collapse the steps block now that we have the answer
+    if not answer:
+        answer = "I wasn't able to generate a response. Please try asking your question again."
     history[-1]["content"] = _render(tool_names, tool_content, answer, streaming=False)
+    _usage_logger.log(username=request.username, vehicle=vehicle)
     yield "", history
 
 
 def on_vehicle_select(vehicle: str):
     if not check_query_ready():
-        return gr.Textbox(interactive=False), gr.Button(interactive=False)
+        return gr.Textbox(interactive=False), gr.Button(interactive=False), []
     enabled = bool(vehicle)
     placeholder = "Ask a question..." if enabled else "Select a vehicle above to begin..."
-    return gr.Textbox(interactive=enabled, placeholder=placeholder), gr.Button(interactive=enabled)
+    return gr.Textbox(interactive=enabled, placeholder=placeholder), gr.Button(interactive=enabled), []
 
 
 def on_ready_tick(vehicle: str):
@@ -165,8 +188,18 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     gr.HTML(
         "<style>"
         "footer, .footer, div[class*='footer'] { display: none !important; } "
-        "#chatbot { height: 55vh !important; }"
+        "#chatbot { overflow-anchor: none; } "
+        "#chatbot .wrap { scroll-behavior: auto !important; } "
+        "body { overflow: hidden; height: 100dvh; } "
         "</style>"
+        "<script>"
+        "document.addEventListener('focusin', function(e) {"
+        "  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {"
+        "    var pos = window.scrollY;"
+        "    setTimeout(function() { window.scrollTo(0, pos); }, 50);"
+        "  }"
+        "});"
+        "</script>"
         "<h1 style='margin:0 0 0.25rem'>Cartographer</h1>"
         "<p style='margin:0 0 0.75rem; color: var(--body-text-color-subdued)'>"
         "A conversational assistant for vehicle owners. Select your vehicle, then ask questions "
@@ -176,7 +209,7 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     )
     status_md = gr.Markdown("Query service is starting up, please wait...", visible=True)
     vehicle_dd = gr.Dropdown(label="Vehicle", interactive=True, allow_custom_value=True)
-    chatbot = gr.Chatbot(elem_id="chatbot")
+    chatbot = gr.Chatbot(elem_id="chatbot", height="45dvh", autoscroll=False)
     with gr.Row():
         msg = gr.Textbox(
             placeholder="Select a vehicle above to begin...",
@@ -186,10 +219,10 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
         )
         submit = gr.Button("Send", interactive=False, scale=1)
 
-    poll_timer = gr.Timer(2.0, active=True)
+    poll_timer = gr.Timer(2.0, active=False)
     poll_timer.tick(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
 
-    vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit])
+    vehicle_dd.change(on_vehicle_select, vehicle_dd, [msg, submit, chatbot])
     submit.click(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
     msg.submit(respond, [msg, chatbot, vehicle_dd], [msg, chatbot])
 
@@ -199,5 +232,5 @@ with gr.Blocks(title="Cartographer", analytics_enabled=False) as gradio_app:
     gradio_app.load(load_vehicles, outputs=vehicle_dd)
     gradio_app.load(on_ready_tick, inputs=[vehicle_dd], outputs=[status_md, msg, submit, poll_timer])
 
-_auth = (settings.auth_username, settings.auth_password) if settings.auth_password else None
+_auth = build_auth_verifier(settings.auth_users_secret)
 app = gr.mount_gradio_app(app, gradio_app, path="/", auth=_auth)

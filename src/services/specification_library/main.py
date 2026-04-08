@@ -24,9 +24,21 @@ class VehicleSpecifications(BaseModel):
     mpg_combined: float = Field(gt=0)
 
 
+class MaintenanceItem(BaseModel):
+    service: str
+    action: str  # e.g. "Inspect", "Replace", "Tighten", "Lubricate"
+    interval_miles: list[int]
+    notes: str = ""
+
+
 class VehicleEntry(BaseModel):
     vehicle: Vehicle
     specs: VehicleSpecifications
+    maintenance_schedule: list[MaintenanceItem] = []
+
+
+def _every(start, stop, step):
+    return list(range(start, stop, step))
 
 
 SPECS: list[VehicleEntry] = [
@@ -45,6 +57,90 @@ SPECS: list[VehicleEntry] = [
             mpg_highway=26.0,
             mpg_combined=23.0,
         ),
+        maintenance_schedule=[
+            MaintenanceItem(service="All Fluid Levels", action="Inspect", interval_miles=_every(5000, 151000, 5000)),
+            MaintenanceItem(
+                service="Brake Linings/Drums and Brake Pads/Discs",
+                action="Inspect",
+                interval_miles=_every(5000, 151000, 5000),
+            ),
+            MaintenanceItem(
+                service="Driver's Floor Mat Installation",
+                action="Inspect",
+                interval_miles=_every(5000, 151000, 5000),
+            ),
+            MaintenanceItem(service="Tire Rotation", action="Perform", interval_miles=_every(5000, 151000, 5000)),
+            MaintenanceItem(service="Wiper Blades", action="Inspect", interval_miles=_every(5000, 151000, 5000)),
+            MaintenanceItem(
+                service="Engine Oil and Oil Filter", action="Replace", interval_miles=_every(10000, 151000, 10000)
+            ),
+            MaintenanceItem(
+                service="Ball Joints and Dust Covers", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Brake Lines and Hoses", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Drive Shaft Boots", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Exhaust Pipes and Mountings", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Front Differential Oil",
+                action="Inspect",
+                interval_miles=_every(15000, 151000, 15000),
+                notes="If applicable",
+            ),
+            MaintenanceItem(
+                service="Propeller Shaft Bolts", action="Torque", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Radiator, Condenser, and Intercooler",
+                action="Inspect",
+                interval_miles=_every(15000, 151000, 15000),
+            ),
+            MaintenanceItem(
+                service="Rear Differential Oil", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(service="Steering Gear", action="Inspect", interval_miles=_every(15000, 151000, 15000)),
+            MaintenanceItem(
+                service="Steering Linkage and Boots", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Automatic Transmission Fluid",
+                action="Inspect",
+                interval_miles=_every(30000, 151000, 30000),
+            ),
+            MaintenanceItem(
+                service="Automatic Transmission Fluid Hoses and Connections",
+                action="Inspect",
+                interval_miles=_every(30000, 151000, 30000),
+            ),
+            MaintenanceItem(service="Cabin Air Filter", action="Replace", interval_miles=_every(30000, 151000, 30000)),
+            MaintenanceItem(service="Engine Air Filter", action="Replace", interval_miles=_every(30000, 151000, 30000)),
+            MaintenanceItem(
+                service="Fuel Lines, Connections, Tank Band, and Vapor Vent System Hoses",
+                action="Inspect",
+                interval_miles=_every(30000, 151000, 30000),
+            ),
+            MaintenanceItem(
+                service="Fuel Tank Cap Gasket", action="Inspect", interval_miles=_every(30000, 151000, 30000)
+            ),
+            MaintenanceItem(
+                service="Manual Transmission Oil",
+                action="Inspect",
+                interval_miles=_every(30000, 151000, 30000),
+                notes="If applicable",
+            ),
+            MaintenanceItem(
+                service="Transfer Case Oil",
+                action="Inspect",
+                interval_miles=_every(30000, 151000, 30000),
+                notes="If applicable",
+            ),
+            MaintenanceItem(service="Spark Plugs", action="Replace", interval_miles=_every(40000, 151000, 40000)),
+        ],
     ),
     VehicleEntry(
         vehicle=Vehicle(years_valid=(2018, 2024), make="Toyota", model="Camry"),
@@ -61,6 +157,68 @@ SPECS: list[VehicleEntry] = [
             mpg_highway=39.0,
             mpg_combined=32.0,
         ),
+        maintenance_schedule=[
+            MaintenanceItem(service="All Fluid Levels", action="Inspect", interval_miles=_every(5000, 151000, 5000)),
+            MaintenanceItem(
+                service="Brake Linings/Drums and Brake Pads/Discs",
+                action="Inspect",
+                interval_miles=_every(5000, 151000, 5000),
+            ),
+            MaintenanceItem(
+                service="Driver's Floor Mat Installation",
+                action="Inspect",
+                interval_miles=_every(5000, 151000, 5000),
+            ),
+            MaintenanceItem(service="Tire Rotation", action="Perform", interval_miles=_every(5000, 151000, 5000)),
+            MaintenanceItem(service="Wiper Blades", action="Inspect", interval_miles=_every(5000, 151000, 5000)),
+            MaintenanceItem(
+                service="Engine Oil and Oil Filter", action="Replace", interval_miles=_every(10000, 151000, 10000)
+            ),
+            MaintenanceItem(service="Cabin Air Filter", action="Replace", interval_miles=_every(10000, 151000, 10000)),
+            MaintenanceItem(
+                service="Ball Joints and Dust Covers", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Brake Lines and Hoses", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Drive Shaft Boots", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Engine Coolant", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Exhaust Pipes and Mountings", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(
+                service="Radiator and Condenser", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(service="Steering Gear", action="Inspect", interval_miles=_every(15000, 151000, 15000)),
+            MaintenanceItem(
+                service="Steering Linkage and Boots", action="Inspect", interval_miles=_every(15000, 151000, 15000)
+            ),
+            MaintenanceItem(service="Engine Air Filter", action="Replace", interval_miles=_every(30000, 151000, 30000)),
+            MaintenanceItem(
+                service="Automatic Transmission Fluid Cooler Hoses and Connections",
+                action="Inspect",
+                interval_miles=_every(60000, 151000, 60000),
+            ),
+            MaintenanceItem(
+                service="Automatic Transmission for Leaks",
+                action="Inspect",
+                interval_miles=_every(60000, 151000, 60000),
+            ),
+            MaintenanceItem(service="Drive Belts", action="Inspect", interval_miles=_every(60000, 151000, 60000)),
+            MaintenanceItem(
+                service="Fuel Lines, Connections, Tank Band, and Vapor Vent System Hoses",
+                action="Inspect",
+                interval_miles=_every(60000, 151000, 60000),
+            ),
+            MaintenanceItem(
+                service="Fuel Tank Cap Gasket", action="Inspect", interval_miles=_every(60000, 151000, 60000)
+            ),
+            MaintenanceItem(service="Spark Plugs", action="Replace", interval_miles=_every(60000, 151000, 60000)),
+        ],
     ),
 ]
 
@@ -98,3 +256,12 @@ def get_vehicle_specs(vehicle: str = Query(..., description="Vehicle identifier 
     if entry is None:
         return JSONResponse(status_code=404, content={"detail": f"Vehicle '{vehicle}' not found"})
     return entry.specs
+
+
+@app.get("/vehicle/maintenance")
+def get_vehicle_maintenance(vehicle: str = Query(..., description="Vehicle identifier (YEAR MAKE MODEL)")):
+    """Gets the maintenance schedule for a vehicle"""
+    entry = find_specs(vehicle)
+    if entry is None:
+        return JSONResponse(status_code=404, content={"detail": f"Vehicle '{vehicle}' not found"})
+    return entry.maintenance_schedule

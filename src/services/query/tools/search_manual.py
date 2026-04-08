@@ -45,14 +45,19 @@ def is_model_ready() -> bool:
 
 @tool
 def search_manual(search_info: str = "", vehicle: str = "") -> str:
-    """Gets relevant text from owner's manual for a vehicle
+    """Gets relevant text from owner's manual for a vehicle.
+
+    Search for one focused concept at a time. If results are insufficient,
+    call this tool again with a different or more specific search term rather
+    than combining multiple topics into one query.
 
     Args:
-        search_info: the text to search for
+        search_info: a single focused concept to search for (e.g. "scheduled
+            maintenance items", "oil change interval", "tire rotation")
         vehicle: the vehicle to search collections for
 
     Returns:
-        str continaing top matching results from owner's manual
+        str containing top matching results from owner's manual
     """
 
     if search_info is None or search_info == "" or vehicle is None or vehicle == "":
@@ -78,6 +83,10 @@ def search_manual(search_info: str = "", vehicle: str = "") -> str:
     )
 
     if len(response.points) == 0:
-        return f"No owner's manual data is available for {vehicle}. Do not retry this search."
+        return (
+            f"No results found for \"{search_info}\" in the {vehicle} owner's manual. "
+            "You may try one alternative search term, but if that also returns no results, "
+            "the information is not available in the manual."
+        )
 
     return "\n\n".join(point.payload["text"] for point in response.points)

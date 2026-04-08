@@ -2,10 +2,11 @@ import json
 import threading
 import time
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 
 from settings_query import get_settings
@@ -73,7 +74,7 @@ def ready():
 
 
 class QueryRequest(BaseModel):
-    question: str
+    question: Annotated[str, Field(max_length=500)]
     vehicle: str
     history: list[dict] = []
 

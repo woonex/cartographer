@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     specifications_library_url: str
     collection_name: str = "manuals"
     top_k: int = 3
-    min_similarity: float = 0.75
+    min_similarity: float = 0.5
 
     model_config = {"env_prefix": "QUERY_"}
 

@@ -24,25 +24,29 @@ client = TestClient(app)
 
 
 def test_ingest_valid_pdf():
-    with patch("main.ingest_vehicle") as mock_ingest:
+    with patch("main._run_ingest"):
         pdf_bytes = b"%PDF-1.4 minimal"
         response = client.post(
             "/ingest",
             data={"vehicle_name": "test-car", "document_name": "owners-manual"},
             files={"file": ("manual.pdf", pdf_bytes, "application/pdf")},
         )
-        assert response.status_code == 200
-        assert response.json()["status"] == "ok"
-        mock_ingest.assert_called_once()
+        assert response.status_code == 202
+        body = response.json()
+        assert "job_id" in body
+        assert body["status"] == "pending"
 
 
 def test_ingest_bad_file():
-    response = client.post(
-        "/ingest",
-        data={"vehicle_name": "test-car", "document_name": "owners-manual"},
-        files={"file": ("garbage.txt", b"not a pdf", "text/plain")},
-    )
-    assert response.status_code == 422
+    with patch("main._run_ingest"):
+        response = client.post(
+            "/ingest",
+            data={"vehicle_name": "test-car", "document_name": "owners-manual"},
+            files={"file": ("garbage.txt", b"not a pdf", "text/plain")},
+        )
+        # Endpoint accepts all uploads asynchronously; bad files fail in the background job
+        assert response.status_code == 202
+        assert "job_id" in response.json()
 
 
 def test_ready_qdrant_down():
