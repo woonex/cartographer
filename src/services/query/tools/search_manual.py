@@ -83,6 +83,10 @@ def search_manual(search_info: str = "", vehicle: str = "") -> str:
     )
 
     if len(response.points) == 0:
-        return f"No results found for \"{search_info}\" in the {vehicle} owner's manual. You may try one alternative search term, but if that also returns no results, the information is not available in the manual."
+        return (
+            f"No results found for \"{search_info}\" in the {vehicle} owner's manual. "
+            "You may try one alternative search term, but if that also returns no results, "
+            "the information is not available in the manual."
+        )
 
     return "\n\n".join(point.payload["text"] for point in response.points)

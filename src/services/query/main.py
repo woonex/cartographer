@@ -2,11 +2,11 @@ import json
 import threading
 import time
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Annotated
 from qdrant_client import QdrantClient
 
 from settings_query import get_settings

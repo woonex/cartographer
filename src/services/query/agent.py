@@ -3,8 +3,8 @@ from typing import AsyncGenerator
 from dotenv import load_dotenv
 from groq import BadRequestError
 from langchain_core.messages import AIMessage, SystemMessage
-from langgraph.errors import GraphRecursionError
 from langchain_groq import ChatGroq
+from langgraph.errors import GraphRecursionError
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import MessagesState
 from langgraph.prebuilt import ToolNode
@@ -124,6 +124,9 @@ async def ask_stream(question: str, vehicle: str, history: list[dict] | None = N
                     yield {"type": "answer_token", "content": chunk.content}
 
     except GraphRecursionError:
-        yield {"type": "answer_token", "content": "I wasn't able to find enough information to answer that. Please try asking in a different way."}
+        yield {
+            "type": "answer_token",
+            "content": "I wasn't able to find enough information to answer that. Please try asking in a different way.",
+        }
 
     yield {"type": "done"}
